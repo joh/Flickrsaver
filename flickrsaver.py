@@ -274,11 +274,10 @@ class FlickrSaver(object):
         self.stage.connect('notify::allocation', self.size_changed)
         self.stage.connect('key-press-event', self.key_pressed)
         
-        '''
         if 'XSCREENSAVER_WINDOW' in os.environ:
             xwin = int(os.environ['XSCREENSAVER_WINDOW'], 0)
             clutter.x11.set_stage_foreign(self.stage, xwin)
-        '''
+        
         self.photo1 = clutter.Texture()
         self.photo1.hide()
         self.stage.add(self.photo1)
