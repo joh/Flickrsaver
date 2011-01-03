@@ -26,12 +26,13 @@
       flickrsaver.py [OPTIONS]
       
       Photo sources:
-       -u, --user <user_id>      Show photos from user's Photostream
-       -g, --group <group_id>    Show photos from group's Photostream
-       -i, --interesting         Show interesting photos from the last 7 days
+       -u, --user <user_id>     Show photos from user's Photostream
+       -g, --group <group_id>   Show photos from group's Photostream
+       -i, --interesting        Show interesting photos from the last 7 days
       
       Other options:
-       -d, --days <days>         Only show photos newer than the specified 
+       -d, --days <days>        Only show photos newer than the specified 
                                 number of days
+       --info                   Show information about the photos
       
       If no photo sources are specified, --interesting is implied.

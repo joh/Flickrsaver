@@ -232,11 +232,21 @@ class Photostream(FlickrSource):
         
     def get_tree(self):
         return flickr.people_getPublicPhotos(user_id=self.user_id, extras='url_s,url_m,url_o', per_page=500)
-        #return flickr.photos_search(user_id='7353466@N08', extras='url_s,url_m,url_o', per_page=500)
     
     def __repr__(self):
         return 'Photostream(%r)' % (self.user_id)
 
+class Group(FlickrSource):
+    def __init__(self, group_id):
+        FlickrSource.__init__(self)
+
+        self.group_id = group_id
+        
+    def get_tree(self):
+        return flickr.groups_pools_getPhotos(group_id=self.group_id, extras='url_s,url_m,url_o', per_page=500)
+    
+    def __repr__(self):
+        return 'Group(%r)' % (self.group_id)
     
 class PhotoUpdater(Thread):
     def __init__(self, saver, photo_pool, interval=5):
@@ -438,6 +448,8 @@ if __name__ == '__main__':
     
     parser.add_argument('-u', '--user', action='append', default=[], metavar='USER_ID',
                         help="Show photos from user's Photostream")
+    parser.add_argument('-g', '--group', action='append', default=[], metavar='GROUP_ID',
+                        help="Show photos from group's Photostream")
     parser.add_argument('-i', '--interesting', action='store_true',
                         help="Show interesting photos from the last 7 days")
     
@@ -449,18 +461,21 @@ if __name__ == '__main__':
     photo_sources = []
     
     # User's photostream
-    for u in args.user:
-        source = Photostream(u)
+    for user_id in args.user:
+        source = Photostream(user_id)
         photo_sources.append(source)
     
-    # If there are no photo sources configured, default to interestingness
+    # Group's photostream
+    for group_id in args.group:
+        source = Group(group_id)
+        photo_sources.append(source)
+    
+    # Default: Interestingness
     if args.interesting or not photo_sources:
         source = Interestingness()
         photo_sources.append(source)
     
-    print args
-    print photo_sources
-
-    
+    # Fire up the screensaver
     fs = FlickrSaver(photo_sources)
     fs.main()
+    
