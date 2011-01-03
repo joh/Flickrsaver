@@ -1,0 +1,3 @@
+include CHANGES LICENSE AUTHORS
+include flickrsaver.py
+include flickrsaver.desktop

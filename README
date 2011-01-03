@@ -27,7 +27,7 @@
       
       Photo sources:
        -u, --user <user_id>     Show photos from user's Photostream
-       -g, --group <group_id>   Show photos from group's Photostream
+       -g, --group <group_id>   Show photos from group's Photo pool
        -i, --interesting        Show interesting photos from the last 7 days
       
       Other options:

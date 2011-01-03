@@ -1,8 +1,8 @@
 [Desktop Entry]
 Name=Flickr Saver
 Comment=Display interesting photos from Flickr
-Exec=/usr/lib/gnome-screensaver/gnome-screensaver/flickrsaver
-TryExec=/usr/lib/gnome-screensaver/gnome-screensaver/flickrsaver
+Exec=/usr/lib/xscreensaver/flickrsaver.py
+TryExec=/usr/lib/xscreensaver/flickrsaver.py
 StartupNotify=false
 Terminal=false
 Type=Application

@@ -1,25 +1,11 @@
 #!/usr/bin/env python
 """
-Flickr Saver: Screensaver
+Flickrsaver: A screensaver for Flickr enthusiasts
 
-Flickr Saver downloads interesting photos from Flickr and displays them
-as a screensaver.
+See README for more information.
 
-Requires pyclutter >= 1.0.2 for clutter.x11
-
-Keep a cache of X photos in ~/.cache/flickrsaver/
-Name photos by their Flickr ID
-Every time a photo is shown, delete it from the pool and fetch a random new one
-- Only delete it *after* a new one has been successfully fetched (in case of no network connection)
-
-Pool:
-    add(id, url, info)
-    remove(id)
-    get(id=None)
-    
-Producer:
-    next()
-    
+Copyright (c) 2010, Johannes H. Jensen.
+License: BSD, see LICENSE for more details.
 """
 import flickrapi
 import glib
@@ -478,4 +464,3 @@ if __name__ == '__main__':
     # Fire up the screensaver
     fs = FlickrSaver(photo_sources)
     fs.main()
-    
