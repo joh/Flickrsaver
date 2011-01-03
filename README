@@ -1,0 +1,37 @@
+
+                          Flickrsaver
+                          
+               A screensaver for Flickr enthusiasts
+
+
+    ~ What is it?
+    
+      Flickrsaver displays photos from Flickr as a screensaver.
+      
+      It is built on Python and Clutter, and designed for Linux-based
+      systems.
+    
+    ~ What do I need?
+      
+      Python 2.6+, PyClutter 1.0.2+ and Python-flickrapi.
+      
+    ~ How does it work?
+      
+      Flickrsaver downloads and keeps a pool of photos in ~/.cache/flickrsaver/
+      Photos are shown at random, and the pool is updated with a new photo
+      every time one is shown. 
+    
+    ~ Usage
+    
+      flickrsaver.py [OPTIONS]
+      
+      Photo sources:
+       -u, --user <user_id>      Show photos from user's Photostream
+       -g, --group <group_id>    Show photos from group's Photostream
+       -i, --interesting         Show interesting photos from the last 7 days
+      
+      Other options:
+       -d, --days <days>         Only show photos newer than the specified 
+                                number of days
+      
+      If no photo sources are specified, --interesting is implied.

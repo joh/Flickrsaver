@@ -220,6 +220,9 @@ class Interestingness(FlickrSource):
     def get_tree(self):
         #return flickr.photos_search(user_id='7353466@N08', extras='url_s,url_m,url_o', per_page=500)
         return flickr.interestingness_getList(extras='url_s,url_m,url_o', per_page=500)
+    
+    def __repr__(self):
+        return 'Interestingness()'
 
 class Photostream(FlickrSource):
     def __init__(self, user_id):
@@ -230,6 +233,9 @@ class Photostream(FlickrSource):
     def get_tree(self):
         return flickr.people_getPublicPhotos(user_id=self.user_id, extras='url_s,url_m,url_o', per_page=500)
         #return flickr.photos_search(user_id='7353466@N08', extras='url_s,url_m,url_o', per_page=500)
+    
+    def __repr__(self):
+        return 'Photostream(%r)' % (self.user_id)
 
     
 class PhotoUpdater(Thread):
@@ -263,7 +269,7 @@ class PhotoUpdater(Thread):
         
 
 class FlickrSaver(object):
-    def __init__(self):
+    def __init__(self, photo_sources=[]):
         # Set up Clutter stage and actors
         self.stage = clutter.Stage()
         self.stage.set_title('Flickr Saver')
@@ -300,7 +306,8 @@ class FlickrSaver(object):
         self.photo_pool = PhotoPool()
         
         # Photo sources
-        self.photo_pool.add_source(Photostream('7353466@N08'))
+        for ps in photo_sources:
+            self.photo_pool.add_source(ps)
         
         # Photo updater
         self.updater = PhotoUpdater(self, self.photo_pool)
@@ -325,6 +332,7 @@ class FlickrSaver(object):
             self.photo = self.photo1
         
         try:
+            # TODO: auto-rotate (based on EXIF info)
             self.photo.set_from_file(self.filename)
             self.scale_photo()
             
@@ -415,10 +423,44 @@ class FlickrSaver(object):
 
 
 if __name__ == '__main__':
+    import argparse
+    
+    '''
     if 'XSCREENSAVER_WINDOW' in os.environ:
         f = open('/tmp/foo', 'w')
         f.write('XSCREENSAVER_WINDOW=' + os.environ['XSCREENSAVER_WINDOW'] + '\n')
         f.close()
-        
-    fs = FlickrSaver()
+    '''
+    
+    # Parse command-line arguments
+    #Photostream('7353466@N08')
+    parser = argparse.ArgumentParser(description='A screensaver for Flickr enthusiasts')
+    
+    parser.add_argument('-u', '--user', action='append', default=[], metavar='USER_ID',
+                        help="Show photos from user's Photostream")
+    parser.add_argument('-i', '--interesting', action='store_true',
+                        help="Show interesting photos from the last 7 days")
+    
+    parser.add_argument('-d', '--days', type=int,
+                        help="Only show photos newer than the specified number of days")
+    
+    args = parser.parse_args()
+    
+    photo_sources = []
+    
+    # User's photostream
+    for u in args.user:
+        source = Photostream(u)
+        photo_sources.append(source)
+    
+    # If there are no photo sources configured, default to interestingness
+    if args.interesting or not photo_sources:
+        source = Interestingness()
+        photo_sources.append(source)
+    
+    print args
+    print photo_sources
+
+    
+    fs = FlickrSaver(photo_sources)
     fs.main()
