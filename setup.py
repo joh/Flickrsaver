@@ -11,7 +11,8 @@ setup(
     
     requires=[
         'clutter (>=1.0.3)',
-        'flickrapi'
+        'gtk (>=2.12)',
+        'flickrapi',
     ],
     
     # TODO: Absolute system paths like this should be avoided, but

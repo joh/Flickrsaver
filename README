@@ -13,7 +13,10 @@
     
     ~ What do I need?
       
-      Python 2.6+, PyClutter 1.0.2+ and Python-flickrapi.
+      Python 2.6+ with argparse
+      PyClutter 1.0.2+
+      PyGTK 2.12+
+      python-flickrapi
       
     ~ How does it work?
       

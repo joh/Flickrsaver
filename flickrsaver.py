@@ -7,17 +7,19 @@ See README for more information.
 Copyright (c) 2010, Johannes H. Jensen.
 License: BSD, see LICENSE for more details.
 """
-import flickrapi
-import glib
-import gobject
-import clutter
-import clutter.x11
-import urllib2
 import time
 import os
 import logging
+import urllib2
 from random import randint
 from threading import Thread, Event, Condition, RLock
+
+import flickrapi
+import glib
+import gobject
+from gtk import gdk
+import clutter
+import clutter.x11
 
 gobject.threads_init()
 clutter.threads_init()
@@ -37,6 +39,82 @@ class PhotoSource(object):
             returning the filename """
         raise NotImplementedError
 
+class FlickrSource(PhotoSource):
+    """ Flickr photo source """
+    
+    def __init__(self, refresh=30):
+        """ Refresh every 30 secs """
+        PhotoSource.__init__(self)
+        
+        self.results = None
+        self.refresh = refresh
+        self.last_refresh = None
+    
+    def get_tree(self):
+        raise NotImplementedError()
+    
+    def get_photo(self, target_dir):
+        if not self.results or time.time() - self.last_refresh >= self.refresh:
+            log.debug("Downloading list...")
+            tree = self.get_tree()
+            self.results = tree.find('photos').findall('photo')
+            self.last_refresh = time.time()
+        
+        url = None
+        while not url:
+            r = randint(0, len(self.results) - 1)
+            p = self.results.pop(r)
+            
+            try:
+                url = p.attrib['url_o']
+            except KeyError:
+                url = p.attrib['url_m']
+            except KeyError:
+                url = p.attrib['url_s']
+            except KeyError:
+                log.warn("No suitable URL found for photo #%s", p.attrib['id'])
+                continue
+        
+        log.debug("Downloading %s...", url)
+        
+        u = urllib2.urlopen(url)
+        filename = os.path.join(target_dir, os.path.basename(url))
+        f = open(filename, 'wb')
+        f.write(u.read())
+        
+        return filename
+
+class Interestingness(FlickrSource):
+    def get_tree(self):
+        #return flickr.photos_search(user_id='7353466@N08', extras='url_s,url_m,url_o', per_page=500)
+        return flickr.interestingness_getList(extras='url_s,url_m,url_o', per_page=500)
+    
+    def __repr__(self):
+        return 'Interestingness()'
+
+class Photostream(FlickrSource):
+    def __init__(self, user_id):
+        FlickrSource.__init__(self)
+
+        self.user_id = user_id
+        
+    def get_tree(self):
+        return flickr.people_getPublicPhotos(user_id=self.user_id, extras='url_s,url_m,url_o', per_page=500)
+    
+    def __repr__(self):
+        return 'Photostream(%r)' % (self.user_id)
+
+class Group(FlickrSource):
+    def __init__(self, group_id):
+        FlickrSource.__init__(self)
+
+        self.group_id = group_id
+        
+    def get_tree(self):
+        return flickr.groups_pools_getPhotos(group_id=self.group_id, extras='url_s,url_m,url_o', per_page=500)
+    
+    def __repr__(self):
+        return 'Group(%r)' % (self.group_id)
 
 class PhotoPool(Thread):
     """ A pool of photos! """
@@ -124,15 +202,13 @@ class PhotoPool(Thread):
     def run(self):
         src = 0
         
-        assert len(self.sources) > 0
-        
         while not self._stop.is_set():
             
             if self.is_full():
                 with self.removed:
                     self.removed.wait(0.1)
                     
-            if not self.is_full():
+            if not self.is_full() and self.sources:
                 source = self.sources[src]
                 
                 try:
@@ -150,6 +226,9 @@ class PhotoPool(Thread):
                 f = self.trash.pop()
                 log.debug("Deleting %s...", f)
                 os.remove(os.path.join(self.dir, f))
+            
+            # In case of no sources, don't clog up the CPU
+            time.sleep(0.1)
        
         log.debug("Pool stopped")
             
@@ -158,84 +237,8 @@ class PhotoPool(Thread):
         log.info("Stopping pool...")
         self._stop.set()
 
-
-class FlickrSource(PhotoSource):
-    def __init__(self, refresh=30):
-        """ Refresh every 30 secs """
-        PhotoSource.__init__(self)
-        
-        self.results = None
-        self.refresh = refresh
-        self.last_refresh = None
-    
-    def get_tree(self):
-        raise NotImplementedError()
-    
-    def get_photo(self, target_dir):
-        if not self.results or time.time() - self.last_refresh >= self.refresh:
-            log.debug("Downloading list...")
-            tree = self.get_tree()
-            self.results = tree.find('photos').findall('photo')
-            self.last_refresh = time.time()
-        
-        url = None
-        while not url:
-            r = randint(0, len(self.results) - 1)
-            p = self.results.pop(r)
-            
-            try:
-                url = p.attrib['url_o']
-            except KeyError:
-                url = p.attrib['url_m']
-            except KeyError:
-                url = p.attrib['url_s']
-            except KeyError:
-                log.warn("No suitable URL found for photo #%s", p.attrib['id'])
-                continue
-        
-        log.debug("Downloading %s...", url)
-        
-        u = urllib2.urlopen(url)
-        filename = os.path.join(target_dir, os.path.basename(url))
-        f = open(filename, 'wb')
-        f.write(u.read())
-        
-        return filename
-
-class Interestingness(FlickrSource):
-    def get_tree(self):
-        #return flickr.photos_search(user_id='7353466@N08', extras='url_s,url_m,url_o', per_page=500)
-        return flickr.interestingness_getList(extras='url_s,url_m,url_o', per_page=500)
-    
-    def __repr__(self):
-        return 'Interestingness()'
-
-class Photostream(FlickrSource):
-    def __init__(self, user_id):
-        FlickrSource.__init__(self)
-
-        self.user_id = user_id
-        
-    def get_tree(self):
-        return flickr.people_getPublicPhotos(user_id=self.user_id, extras='url_s,url_m,url_o', per_page=500)
-    
-    def __repr__(self):
-        return 'Photostream(%r)' % (self.user_id)
-
-class Group(FlickrSource):
-    def __init__(self, group_id):
-        FlickrSource.__init__(self)
-
-        self.group_id = group_id
-        
-    def get_tree(self):
-        return flickr.groups_pools_getPhotos(group_id=self.group_id, extras='url_s,url_m,url_o', per_page=500)
-    
-    def __repr__(self):
-        return 'Group(%r)' % (self.group_id)
-    
 class PhotoUpdater(Thread):
-    def __init__(self, saver, photo_pool, interval=5):
+    def __init__(self, saver, photo_pool, interval=10):
         Thread.__init__(self)
         
         self.saver = saver
@@ -281,11 +284,11 @@ class FlickrSaver(object):
             clutter.x11.set_stage_foreign(self.stage, xwin)
         
         self.photo1 = clutter.Texture()
-        self.photo1.hide()
+        self.photo1.set_opacity(0)
         self.stage.add(self.photo1)
         
         self.photo2 = clutter.Texture()
-        self.photo2.hide()
+        self.photo2.set_opacity(0)
         self.stage.add(self.photo2)
         
         self.photo = self.photo2
@@ -328,8 +331,8 @@ class FlickrSaver(object):
             self.photo = self.photo1
         
         try:
-            # TODO: auto-rotate (based on EXIF info)
-            self.photo.set_from_file(self.filename)
+            self.load_photo()
+            self.rotate_photo()
             self.scale_photo()
             
             self.fade_in.remove_all()
@@ -363,37 +366,102 @@ class FlickrSaver(object):
         self.filename = filename
         self.queue_update()
     
+    def load_photo(self):
+        """ Load and position photo """
+        self.photo.set_from_file(self.filename)
+        w, h = self.photo.get_size()
+        sw, sh = self.stage.get_size()
+        
+        # Set anchor to center of image
+        self.photo.set_anchor_point(w/2, h/2)
+        
+        # Position center of image to center of stage
+        self.photo.set_position(sw/2, sh/2)
+        
+    def rotate_photo(self):
+        """ Rotate photo based on orientation info """
+        # Clear rotation
+        self.photo.set_rotation(clutter.X_AXIS, 0, 0, 0, 0)
+        self.photo.set_rotation(clutter.Y_AXIS, 0, 0, 0, 0)
+        self.photo.set_rotation(clutter.Z_AXIS, 0, 0, 0, 0)
+        
+        # Read metadata
+        log.debug("rotate_photo: Reading metadata... %s", self.filename)
+        pixbuf = gdk.pixbuf_new_from_file(self.filename)
+        orientation = pixbuf.get_option('orientation')
+        
+        if not orientation:
+            return
+        
+        orientation = int(orientation)
+        
+        log.debug("rotate_photo: Orientation = %d", orientation)
+        
+        if orientation == 1:
+            # (row #0 - col #0)
+            # top - left: No rotation necessary
+            log.debug("rotate_photo: No rotation")
+        elif orientation == 2:
+            # top - right: Flip horizontal
+            log.debug("rotate_photo: Flip horizontal")
+            self.photo.set_rotation(clutter.Y_AXIS, 180, 0, 0, 0)
+        elif orientation == 3:
+            # bottom - right: Rotate 180
+            log.debug("rotate_photo: Rotate 180")
+            self.photo.set_rotation(clutter.Z_AXIS, 180, 0, 0, 0)
+        elif orientation == 4:
+            # bottom - left: Flip vertical
+            log.debug("rotate_photo: Flip vertical")
+            self.photo.set_rotation(clutter.X_AXIS, 180, 0, 0, 0)
+        elif orientation == 5:
+            # left - top: Transpose
+            log.debug("rotate_photo: Transpose")
+            self.photo.set_rotation(clutter.Y_AXIS, 180, 0, 0, 0)
+            self.photo.set_rotation(clutter.Z_AXIS, -90, 0, 0, 0)
+        elif orientation == 6:
+            # right - top: Rotate 90
+            log.debug("rotate_photo: Rotate 90")
+            self.photo.set_rotation(clutter.Z_AXIS, 90, 0, 0, 0)
+        elif orientation == 7:
+            # right - bottom: Transverse
+            log.debug("rotate_photo: Transpose")
+            self.photo.set_rotation(clutter.Y_AXIS, 180, 0, 0, 0)
+            self.photo.set_rotation(clutter.Z_AXIS, 90, 0, 0, 0)
+        elif orientation == 8:
+            # left - bottom: Rotate -90
+            log.debug("rotate_photo: Rotate -90")
+            self.photo.set_rotation(clutter.Z_AXIS, -90, 0, 0, 0)
+
     def scale_photo(self):
+        """ Scale photo to fit stage size """
+        # Clear scale
+        self.photo.set_scale(1, 1)
+        
         width, height = self.stage.get_size()
-        ow, oh = self.photo.get_base_size()
+        ow, oh = self.photo.get_transformed_size()
         w = ow
         h = oh
         
         log.debug("scale_photo: Stage: %sx%s, Photo: %sx%s", width, height, ow, oh)
         
         if ow > width or oh > height:
-            w = width
-            h = oh * w / ow
+            scale = width / ow
+            h = oh * scale
             if h > height:
-                h = height
-                w = ow * h / oh
+                scale = height / oh
             
-            log.debug("Downscaling photo from %sx%s to %sx%s", ow, oh, w, h)
+            self.photo.set_scale(scale, scale)
             
-        self.photo.set_size(w, h)
-        
-        # Center
-        cx = int(width / 2 - w / 2)
-        cy = int(height / 2 - h / 2)
-        log.debug("Centering %sx%s to stage %sx%s: (%s, %s)", w, h, width, height, cx, cy)
-        self.photo.set_position(cx, cy)
+            log.debug("Downscaling photo by %s%%", scale * 100)
     
     def size_changed(self, *args):
+        """ Stage size changed """
         width, height = self.stage.get_size()
         
         log.debug("Stage size: %dx%d", width, height)
         
-        # Resize photo
+        # Update photo position and scale
+        self.load_photo()
         self.scale_photo()
     
     def key_pressed(self, stage, event):
