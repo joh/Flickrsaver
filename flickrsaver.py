@@ -34,9 +34,9 @@ flickr = flickrapi.FlickrAPI(API_KEY)
 cache_dir = os.path.join(glib.get_user_cache_dir(), 'flickrsaver')
 
 class PhotoSource(object):
-    def get_photo(self, target_dir):
-        """ Get a new photo from the source and place it in target_dir,
-            returning the filename """
+    def get_photo(self):
+        """ Return the (filename, fp) of a photo from the source, where
+            fp is an open file descriptor. """
         raise NotImplementedError
 
 class FlickrSource(PhotoSource):
@@ -53,7 +53,7 @@ class FlickrSource(PhotoSource):
     def get_tree(self):
         raise NotImplementedError()
     
-    def get_photo(self, target_dir):
+    def get_photo(self):
         if not self.results or time.time() - self.last_refresh >= self.refresh:
             log.debug("Downloading list...")
             tree = self.get_tree()
@@ -77,12 +77,10 @@ class FlickrSource(PhotoSource):
         
         log.debug("Downloading %s...", url)
         
-        u = urllib2.urlopen(url)
-        filename = os.path.join(target_dir, os.path.basename(url))
-        f = open(filename, 'wb')
-        f.write(u.read())
+        fp = urllib2.urlopen(url)
+        filename = os.path.basename(url)
         
-        return filename
+        return filename, fp
 
 class Interestingness(FlickrSource):
     def get_tree(self):
@@ -212,8 +210,28 @@ class PhotoPool(Thread):
                 source = self.sources[src]
                 
                 try:
-                    filename = source.get_photo(self.dir)
-                    self.add(filename)
+                    # Copy photo to pool
+                    name, fp = source.get_photo()
+                    filename = os.path.join(self.dir, name)
+                    f = open(filename, 'wb')
+                    completed = False
+                    
+                    while not completed and not self._stop.is_set():
+                        d = fp.read(1024)
+                        if d:
+                            f.write(d)
+                        else:
+                            completed = True
+                    
+                    f.close()
+                    if completed:
+                        log.debug("Completed %s", filename)
+                        self.add(filename)
+                    else:
+                        # Partial
+                        log.debug("Deleting partial %s", filename)
+                        os.unlink(filename)
+                            
                 except Exception as e:
                     log.warning("Source '%s' failed: %s", source, e)
                     time.sleep(1)
@@ -254,9 +272,10 @@ class PhotoUpdater(Thread):
             if time.time() - ts >= self.interval:
                 log.debug("Updater: Next!")
                 p = self.photo_pool.pop()
-                filename = os.path.join(self.photo_pool.dir, p)
-                self.saver.set_photo(filename, None)
-                ts = time.time()
+                if p:
+                    filename = os.path.join(self.photo_pool.dir, p)
+                    self.saver.set_photo(filename, None)
+                    ts = time.time()
             
             time.sleep(0.1)
         
@@ -269,6 +288,10 @@ class PhotoUpdater(Thread):
 
 class FlickrSaver(object):
     def __init__(self, photo_sources=[]):
+        # Update queueing
+        self.update_id = 0
+        self.filename = None
+        
         # Set up Clutter stage and actors
         self.stage = clutter.Stage()
         self.stage.set_title('Flickr Saver')
@@ -310,10 +333,6 @@ class FlickrSaver(object):
         
         # Photo updater
         self.updater = PhotoUpdater(self, self.photo_pool)
-        
-        # Update queueing
-        self.update_id = 0
-        self.filename = None
         
 #        gobject.timeout_add_seconds(5, self.next_photo)
     
@@ -461,8 +480,9 @@ class FlickrSaver(object):
         log.debug("Stage size: %dx%d", width, height)
         
         # Update photo position and scale
-        self.load_photo()
-        self.scale_photo()
+        if self.filename:
+            self.load_photo()
+            self.scale_photo()
     
     def key_pressed(self, stage, event):
         if event.keyval == clutter.keysyms.space:
