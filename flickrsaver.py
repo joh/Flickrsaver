@@ -500,12 +500,13 @@ if __name__ == '__main__':
     #Photostream('7353466@N08')
     parser = argparse.ArgumentParser(description='A screensaver for Flickr enthusiasts')
     
-    parser.add_argument('-u', '--user', action='append', default=[], metavar='USER_ID',
-                        help="Show photos from user's Photostream")
-    parser.add_argument('-g', '--group', action='append', default=[], metavar='GROUP_ID',
-                        help="Show photos from group's Photostream")
-    parser.add_argument('-i', '--interesting', action='store_true',
-                        help="Show interesting photos from the last 7 days")
+    sg = parser.add_argument_group('Photo sources')
+    sg.add_argument('-u', '--user', action='append', default=[], metavar='USER_ID',
+                    help="Show photos from user's Photostream")
+    sg.add_argument('-g', '--group', action='append', default=[], metavar='GROUP_ID',
+                    help="Show photos from group's Photostream")
+    sg.add_argument('-i', '--interesting', action='store_true',
+                    help="Show interesting photos")
     
     parser.add_argument('-d', '--days', type=int,
                         help="Only show photos newer than the specified number of days")
