@@ -9,6 +9,7 @@ License: BSD, see LICENSE for more details.
 """
 import time
 import os
+import signal
 import logging
 import urllib2
 from random import randint
@@ -305,6 +306,10 @@ class FlickrSaver(object):
         if 'XSCREENSAVER_WINDOW' in os.environ:
             xwin = int(os.environ['XSCREENSAVER_WINDOW'], 0)
             clutter.x11.set_stage_foreign(self.stage, xwin)
+        
+        # Allow SIGINT to pass through, allowing the screensaver host
+        # to properly shut down the screensaver when needed
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
         
         self.photo1 = clutter.Texture()
         self.photo1.set_opacity(0)
