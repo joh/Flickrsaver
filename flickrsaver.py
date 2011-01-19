@@ -129,6 +129,9 @@ class PhotoPool(Thread):
         if not os.path.exists(self.dir):
             os.mkdir(self.dir)
         
+        # Clean cache directory
+        self.clean_cache()
+        
         # Load cached photos
         self.photos = os.listdir(self.dir)
         
@@ -214,7 +217,8 @@ class PhotoPool(Thread):
                     # Copy photo to pool
                     name, fp = source.get_photo()
                     filename = os.path.join(self.dir, name)
-                    f = open(filename, 'wb')
+                    partial_filename = filename + '.part'
+                    f = open(partial_filename, 'wb')
                     completed = False
                     
                     while not completed and not self._stop.is_set():
@@ -226,12 +230,9 @@ class PhotoPool(Thread):
                     
                     f.close()
                     if completed:
+                        os.rename(partial_filename, filename)
                         log.debug("Completed %s", filename)
                         self.add(filename)
-                    else:
-                        # Partial
-                        log.debug("Deleting partial %s", filename)
-                        os.unlink(filename)
                             
                 except Exception as e:
                     log.warning("Source '%s' failed: %s", source, e)
@@ -250,7 +251,15 @@ class PhotoPool(Thread):
             time.sleep(0.1)
        
         log.debug("Pool stopped")
-            
+    
+    def clean_cache(self):
+        log.debug("Cleaning cache...")
+        
+        # Remove partials from cache
+        for f in os.listdir(self.dir):
+            if f.endswith('.part'):
+                log.debug("Deleting partial: %s", f)
+                os.unlink(os.path.join(self.dir, f))
     
     def stop(self):
         log.info("Stopping pool...")
@@ -558,3 +567,4 @@ if __name__ == '__main__':
     # Fire up the screensaver
     fs = FlickrSaver(photo_sources)
     fs.main()
+
