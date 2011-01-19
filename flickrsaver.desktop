@@ -1,6 +1,6 @@
 [Desktop Entry]
-Name=Flickr Saver
-Comment=Display interesting photos from Flickr
+Name=Flickrsaver
+Comment=Display photos from Flickr
 Exec=/usr/lib/xscreensaver/flickrsaver.py
 TryExec=/usr/lib/xscreensaver/flickrsaver.py
 StartupNotify=false
