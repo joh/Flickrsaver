@@ -304,7 +304,7 @@ class FlickrSaver(object):
         
         # Set up Clutter stage and actors
         self.stage = clutter.Stage()
-        self.stage.set_title('Flickr Saver')
+        self.stage.set_title('Flickrsaver')
         self.stage.set_color('#000000')
         self.stage.set_size(400, 400)
         self.stage.set_user_resizable(True)
