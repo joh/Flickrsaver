@@ -69,6 +69,10 @@ class FlickrSource(PhotoSource):
             try:
                 url = p.attrib['url_o']
             except KeyError:
+                url = p.attrib['url_l']
+            except KeyError:
+                url = p.attrib['url_z']
+            except KeyError:
                 url = p.attrib['url_m']
             except KeyError:
                 url = p.attrib['url_s']
@@ -85,8 +89,7 @@ class FlickrSource(PhotoSource):
 
 class Interestingness(FlickrSource):
     def get_tree(self):
-        #return flickr.photos_search(user_id='7353466@N08', extras='url_s,url_m,url_o', per_page=500)
-        return flickr.interestingness_getList(extras='url_s,url_m,url_o', per_page=500)
+        return flickr.interestingness_getList(extras='url_s,url_m,url_z,url_l,url_o', per_page=500)
     
     def __repr__(self):
         return 'Interestingness()'
@@ -98,7 +101,7 @@ class Photostream(FlickrSource):
         self.user_id = user_id
         
     def get_tree(self):
-        return flickr.people_getPublicPhotos(user_id=self.user_id, extras='url_s,url_m,url_o', per_page=500)
+        return flickr.people_getPublicPhotos(user_id=self.user_id, extras='url_s,url_m,url_z,url_l,url_o', per_page=500)
     
     def __repr__(self):
         return 'Photostream(%r)' % (self.user_id)
@@ -110,7 +113,7 @@ class Group(FlickrSource):
         self.group_id = group_id
         
     def get_tree(self):
-        return flickr.groups_pools_getPhotos(group_id=self.group_id, extras='url_s,url_m,url_o', per_page=500)
+        return flickr.groups_pools_getPhotos(group_id=self.group_id, extras='url_s,url_m,url_z,url_l,url_o', per_page=500)
     
     def __repr__(self):
         return 'Group(%r)' % (self.group_id)
