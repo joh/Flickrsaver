@@ -118,6 +118,18 @@ class Group(FlickrSource):
     def __repr__(self):
         return 'Group(%r)' % (self.group_id)
 
+class Search(FlickrSource):
+    def __init__(self, text):
+        FlickrSource.__init__(self)
+        
+        self.text = text
+    
+    def get_tree(self):
+        return flickr.photos_search(text='cat', extras='url_s,url_m,url_z,url_l,url_o', per_page=500)
+    
+    def __repr__(self):
+        return 'Search(%r)' % (self.text)
+
 class PhotoPool(Thread):
     """ A pool of photos! """
     
@@ -544,6 +556,8 @@ if __name__ == '__main__':
                     help="Show photos from group's Photostream")
     sg.add_argument('-i', '--interesting', action='store_true',
                     help="Show interesting photos")
+    sg.add_argument('-s', '--search', action='append', default=[], metavar='TEXT',
+                    help="Show photos matching text")
     
     parser.add_argument('-d', '--days', type=int,
                         help="Only show photos newer than the specified number of days")
@@ -560,6 +574,11 @@ if __name__ == '__main__':
     # Group's photostream
     for group_id in args.group:
         source = Group(group_id)
+        photo_sources.append(source)
+    
+    # Search text
+    for text in args.search:
+        source = Search(text)
         photo_sources.append(source)
     
     # Default: Interestingness
