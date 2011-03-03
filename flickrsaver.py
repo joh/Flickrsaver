@@ -125,7 +125,7 @@ class Search(FlickrSource):
         self.text = text
     
     def get_tree(self):
-        return flickr.photos_search(text=text, sort='relevance', extras='url_s,url_m,url_z,url_l,url_o', per_page=500)
+        return flickr.photos_search(text=self.text, sort='relevance', extras='url_s,url_m,url_z,url_l,url_o', per_page=500)
     
     def __repr__(self):
         return 'Search(%r)' % (self.text)
@@ -227,6 +227,8 @@ class PhotoPool(Thread):
                     
             if not self.is_full() and self.sources:
                 source = self.sources[src]
+                
+                log.debug("Photo source: %r", source)
                 
                 try:
                     # Copy photo to pool
