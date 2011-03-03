@@ -66,20 +66,20 @@ class FlickrSource(PhotoSource):
             r = randint(0, len(self.results) - 1)
             p = self.results.pop(r)
             
-            try:
+            if 'url_o' in p.attrib:
                 url = p.attrib['url_o']
-            except KeyError:
+            elif 'url_l' in p.attrib:
                 url = p.attrib['url_l']
-            except KeyError:
+            elif 'url_z' in p.attrib:
                 url = p.attrib['url_z']
-            except KeyError:
+            elif 'url_m' in p.attrib:
                 url = p.attrib['url_m']
-            except KeyError:
+            elif 'url_s' in p.attrib:
                 url = p.attrib['url_s']
-            except KeyError:
+            else:
                 log.warn("No suitable URL found for photo #%s", p.attrib['id'])
                 continue
-        
+            
         log.debug("Downloading %s...", url)
         
         fp = urllib2.urlopen(url)
@@ -125,7 +125,7 @@ class Search(FlickrSource):
         self.text = text
     
     def get_tree(self):
-        return flickr.photos_search(text='cat', extras='url_s,url_m,url_z,url_l,url_o', per_page=500)
+        return flickr.photos_search(text='cat', sort='relevance', extras='url_s,url_m,url_z,url_l,url_o', per_page=500)
     
     def __repr__(self):
         return 'Search(%r)' % (self.text)
