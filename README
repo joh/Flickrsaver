@@ -35,8 +35,6 @@
        -s, --search <text>      Show photos matching text
       
       Other options:
-       -d, --days <days>        Only show photos newer than the specified 
-                                number of days
        --info                   Show information about the photos
       
       If no photo sources are specified, --interesting is implied.

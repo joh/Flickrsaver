@@ -561,8 +561,8 @@ if __name__ == '__main__':
     sg.add_argument('-s', '--search', action='append', default=[], metavar='TEXT',
                     help="Show photos matching text")
     
-    parser.add_argument('-d', '--days', type=int,
-                        help="Only show photos newer than the specified number of days")
+    #parser.add_argument('-d', '--days', type=int,
+    #                    help="Only show photos newer than the specified number of days")
     
     args = parser.parse_args()
     
