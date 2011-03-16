@@ -43,6 +43,9 @@ class PhotoSource(object):
 class FlickrSource(PhotoSource):
     """ Flickr photo source """
     
+    common_args = {'extras': 'url_s,url_m,url_z,url_l,url_o',
+                   'per_page': 500}
+    
     def __init__(self, refresh=30):
         """ Refresh every 30 secs """
         PhotoSource.__init__(self)
@@ -89,7 +92,7 @@ class FlickrSource(PhotoSource):
 
 class Interestingness(FlickrSource):
     def get_tree(self):
-        return flickr.interestingness_getList(extras='url_s,url_m,url_z,url_l,url_o', per_page=500)
+        return flickr.interestingness_getList(**self.common_args)
     
     def __repr__(self):
         return 'Interestingness()'
@@ -101,7 +104,7 @@ class Photostream(FlickrSource):
         self.user_id = user_id
         
     def get_tree(self):
-        return flickr.people_getPublicPhotos(user_id=self.user_id, extras='url_s,url_m,url_z,url_l,url_o', per_page=500)
+        return flickr.people_getPublicPhotos(user_id=self.user_id, **self.common_args)
     
     def __repr__(self):
         return 'Photostream(%r)' % (self.user_id)
@@ -113,7 +116,7 @@ class Group(FlickrSource):
         self.group_id = group_id
         
     def get_tree(self):
-        return flickr.groups_pools_getPhotos(group_id=self.group_id, extras='url_s,url_m,url_z,url_l,url_o', per_page=500)
+        return flickr.groups_pools_getPhotos(group_id=self.group_id, **self.common_args)
     
     def __repr__(self):
         return 'Group(%r)' % (self.group_id)
@@ -125,7 +128,7 @@ class Search(FlickrSource):
         self.text = text
     
     def get_tree(self):
-        return flickr.photos_search(text=self.text, sort='relevance', extras='url_s,url_m,url_z,url_l,url_o', per_page=500)
+        return flickr.photos_search(text=self.text, sort='relevance', **self.common_args)
     
     def __repr__(self):
         return 'Search(%r)' % (self.text)
