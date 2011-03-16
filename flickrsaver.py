@@ -46,23 +46,20 @@ class FlickrSource(PhotoSource):
     common_args = {'extras': 'url_s,url_m,url_z,url_l,url_o',
                    'per_page': 500}
     
-    def __init__(self, refresh=30):
-        """ Refresh every 30 secs """
+    def __init__(self):
+        """ Flickr photo source """
         PhotoSource.__init__(self)
         
         self.results = None
-        self.refresh = refresh
-        self.last_refresh = None
     
     def get_tree(self):
         raise NotImplementedError()
     
     def get_photo(self):
-        if not self.results or time.time() - self.last_refresh >= self.refresh:
+        if not self.results:
             log.debug("Downloading list...")
             tree = self.get_tree()
             self.results = tree.find('photos').findall('photo')
-            self.last_refresh = time.time()
         
         url = None
         while not url:
